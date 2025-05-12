@@ -2,8 +2,8 @@ exceptions/MissingParametersException.class
 beans/DataBaseBean.class
 beans/RequestData.class
 hibernateHelpers/HibernateSessionFactory.class
+com/example/xmlvalidator/XmlValidator.class
 beans/GraphStateBean.class
-maven/XmlValidator.class
 exceptions/BadParameterException.class
 beans/HitResult.class
 beans/CoordinateSpace.class

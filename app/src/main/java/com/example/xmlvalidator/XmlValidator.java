@@ -1,4 +1,4 @@
-package maven;
+package com.example.xmlvalidator;
 
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXParseException;
