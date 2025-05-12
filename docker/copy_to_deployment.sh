@@ -1,5 +1,5 @@
 #!/bin/bash
 
 cd ..
-gradle war
-cp app/build/libs/*.war docker/deployments/
+mvn clean install
+cp app/target/*.war docker/deployments/
