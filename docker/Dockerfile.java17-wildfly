@@ -10,6 +10,7 @@ ARG WILDFLY_VERSION
 # RUN mv wildfly-${WILDFLY_VERSION}.tar.gz wildfly.tar.gz
 # RUN tar -x -z -f "wildfly.tar.gz"
 
+
 ADD wildfly-${WILDFLY_VERSION}.tar.gz .
 RUN mv wildfly-${WILDFLY_VERSION} wildfly
 
