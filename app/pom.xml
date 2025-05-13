@@ -410,6 +410,58 @@
                             </arguments>
                         </configuration>
                     </execution>
+
+                    <execution>
+                        <id>report</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>/bin/bash</executable>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>
+                <![CDATA[
+                # Путь к отчетам JUnit
+                REPORT_DIR=target/surefire-reports
+                GIT_REPO_DIR=..
+
+                # Генерация отчетов JUnit (если не выполнена)
+                mvn test
+
+                # Проверка наличия отчетов
+                if [ ! -d "$REPORT_DIR" ]; then
+                    echo "Отчеты JUnit не найдены!"
+                    exit 1
+                fi
+
+                # Копирование отчетов в корень проекта
+                OUTPUT_DIR=$GIT_REPO_DIR/test-reports
+                rm -rf $OUTPUT_DIR || true
+                cp -r $REPORT_DIR $OUTPUT_DIR
+
+                echo "Отчеты JUnit сохранены в $OUTPUT_DIR"
+
+                # Добавление отчетов в Git
+                cd $GIT_REPO_DIR
+                git config --local user.email "user@example.com" || true
+                git config --local user.name "User" || true
+                git add $OUTPUT_DIR
+
+                # Проверка изменений
+                CHANGES=$(git status --porcelain | grep -E "^ M|^??")
+
+                if [ -n "$CHANGES" ]; then
+                    git commit -m "Добавлены новые отчеты JUnit"
+                    echo "Отчеты добавлены в Git и зафиксированы"
+                else
+                    echo "Нет изменений в отчетах, коммит не требуется"
+                fi
+                ]]>
+            </argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 
