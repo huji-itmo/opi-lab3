@@ -230,6 +230,81 @@
                             </arguments>
                         </configuration>
                     </execution>
+
+
+                    <execution>
+                        <id>team</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>/bin/bash</executable>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>
+                        <![CDATA[
+                        BUILD_DIR=target/team
+                        WORKTREES_DIR=$BUILD_DIR/worktrees
+                        JARS_DIR=$BUILD_DIR/jars
+                        ZIP_FILE=$BUILD_DIR/team_builds.zip
+
+                        # Очистка
+                        git worktree prune
+                        rm -rf $WORKTREES_DIR $JARS_DIR $ZIP_FILE || true
+                        mkdir -p $WORKTREES_DIR $JARS_DIR
+
+                        # Получение коммитов
+                        COMMITS=($(git log --pretty=format:"%H" -n 3))
+                        if [ ${#COMMITS[@]} -lt 3 ]; then
+                            echo "Недостаточно коммитов для сборки двух предыдущих версий"
+                            exit 1
+                        fi
+
+                        # Убираем текущий HEAD
+                        unset COMMITS[0]
+                        PREV_COMMITS=("${COMMITS[@]}")
+
+                        # Сборка каждой версии
+                        for COMMIT in "${PREV_COMMITS[@]}"; do
+                            SHORT_COMMIT=${COMMIT:0:7}
+                            WORKTREE_DIR=$WORKTREES_DIR/$SHORT_COMMIT
+
+                            echo "Создание worktree для коммита: $SHORT_COMMIT"
+                            git worktree add -f $WORKTREE_DIR $COMMIT
+
+                            cd $WORKTREE_DIR
+                            echo "Сборка коммита: $SHORT_COMMIT"
+                            mvn -q clean package
+
+                            if [ $? -eq 0 ]; then
+                                JAR_FILE=$(find target -name "*.jar")
+                                if [ -f "$JAR_FILE" ]; then
+                                    cp "$JAR_FILE" "$JARS_DIR/${SHORT_COMMIT}_$(basename $JAR_FILE)"
+                                    echo "JAR сохранен: ${SHORT_COMMIT}_$(basename $JAR_FILE)"
+                                else
+                                    echo "JAR не найден для коммита $SHORT_COMMIT"
+                                fi
+                            else
+                                echo "Ошибка сборки коммита $SHORT_COMMIT"
+                            fi
+
+                            cd -
+                            git worktree remove $WORKTREE_DIR
+                        done
+
+                        # Упаковка в ZIP
+                        if [ "$(ls -A $JARS_DIR)" ]; then
+                            cd $JARS_DIR
+                            zip -r $ZIP_FILE *
+                            echo "ZIP архив создан: $ZIP_FILE"
+                        else
+                            echo "Нет успешных сборок для упаковки"
+                        fi
+                        ]]>
+                    </argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 
