@@ -156,6 +156,83 @@
                     </execution>
                 </executions>
             </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>history</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>/bin/bash</executable>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>
+             <![CDATA[
+            # Очистка сломанных worktree
+            git worktree prune
+
+            BUILD_DIR=target/history
+            WORKTREES_DIR=$BUILD_DIR/worktrees
+            rm -rf $WORKTREES_DIR || true
+            mkdir -p $WORKTREES_DIR
+
+            # Получение списка коммитов
+            COMMITS=$(git log --pretty=format:"%H")
+            ALL_COMMITS=($COMMITS)
+            WORKING_COMMIT=""
+
+            for COMMIT in "${ALL_COMMITS[@]}"; do
+                SHORT_COMMIT=${COMMIT:0:7}
+                WORKTREE_DIR=$WORKTREES_DIR/$SHORT_COMMIT
+
+                # Принудительное создание worktree
+                rm -rf $WORKTREE_DIR || true
+                git worktree add -f $WORKTREE_DIR $COMMIT
+
+                # Проверка сборки
+                cd $WORKTREE_DIR
+                echo "Testing commit: $SHORT_COMMIT"
+                mvn -q clean package
+
+                if [ $? -eq 0 ]; then
+                    WORKING_COMMIT=$COMMIT
+                    cd -
+                    git worktree remove $WORKTREE_DIR
+                    break
+                else
+                    cd -
+                    git worktree remove $WORKTREE_DIR
+                fi
+            done
+
+            # Генерация diff между рабочим и сломанным коммитом
+            if [ -n "$WORKING_COMMIT" ]; then
+                ALL_COMMITS_REVERSED=($(git log --reverse --pretty=format:"%H"))
+                for i in "${!ALL_COMMITS_REVERSED[@]}"; do
+                    if [[ "${ALL_COMMITS_REVERSED[$i]}" == "$WORKING_COMMIT" ]]; then
+                        NEXT_INDEX=$((i+1))
+                        if [ $NEXT_INDEX -lt ${#ALL_COMMITS_REVERSED[@]} ]; then
+                            BROKEN_COMMIT=${ALL_COMMITS_REVERSED[$NEXT_INDEX]}
+                            git diff $WORKING_COMMIT $BROKEN_COMMIT > $BUILD_DIR/diff_${WORKING_COMMIT:0:7}_${BROKEN_COMMIT:0:7}.diff
+                            echo "Diff saved to: diff_${WORKING_COMMIT:0:7}_${BROKEN_COMMIT:0:7}.diff"
+                            break
+                        fi
+                    fi
+                done
+            fi
+            ]]>
+        </argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 </project>
