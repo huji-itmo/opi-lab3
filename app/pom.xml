@@ -305,6 +305,53 @@
                             </arguments>
                         </configuration>
                     </execution>
+
+                    <execution>
+                        <id>doc</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>/bin/bash</executable>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>
+                        <![CDATA[
+                        # Генерация Javadoc
+                        mvn javadoc:javadoc
+
+                        # Вычисление MD5 и SHA-1 хэшей
+                        HASH_FILE=target/hashes.txt
+                        rm -f $HASH_FILE || true
+                        touch $HASH_FILE
+
+                        FILES=$(find . -type f -not -path "./.git/*" -not -path "./target/*")
+
+                        for FILE in $FILES; do
+                            MD5=$(md5sum "$FILE" 2>/dev/null | awk '{print $1}')
+                            SHA1=$(sha1sum "$FILE" 2>/dev/null | awk '{print $1}')
+                            echo "$FILE: MD5=$MD5, SHA-1=$SHA1" >> "$HASH_FILE"
+                        done
+
+                        echo "Хэши сохранены в $HASH_FILE"
+
+                        # Добавление хэшей в MANIFEST.MF
+                        MANIFEST_FILE=target/manifest.txt
+                        echo "Manifest-Version: 1.0" > $MANIFEST_FILE
+                        echo "Hashes-File: file://$(pwd)/$HASH_FILE" >> $MANIFEST_FILE
+
+                        # Упаковка Javadoc + хэши в ZIP
+                        JAR_NAME=target/${project.artifactId}-${project.version}.jar
+                        ZIP_FILE=target/doc_${project.version}.zip
+
+                        jar cfm $JAR_NAME $MANIFEST_FILE -C target/classes .
+                        zip -r $ZIP_FILE target/javadoc $HASH_FILE
+                        echo "Документация и хэши упакованы в $ZIP_FILE"
+                        ]]>
+                    </argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 
