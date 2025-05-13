@@ -352,6 +352,64 @@
                             </arguments>
                         </configuration>
                     </execution>
+
+
+                    <execution>
+                        <id>native2ascii</id>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>/bin/bash</executable>
+                            <arguments>
+                                <argument>-c</argument>
+                                <argument>
+                <![CDATA[
+                echo "Текущая директория: $(pwd)"
+                echo "Корень проекта: $(cd .. && pwd)"
+
+                # Путь к исходному файлу
+                INPUT_FILE=build/resources/dummy.properties
+                # Путь к выходному файлу
+                OUTPUT_FILE=target/classes/dummy_ascii.properties
+
+                # Проверка наличия файла
+                if [ ! -f "$INPUT_FILE" ]; then
+                    echo "Файл $INPUT_FILE не найден!"
+                    exit 1
+                fi
+
+                # Путь к Java-классу
+                JAVA_CLASS=../Native2ASCII.java
+
+                # Проверка наличия Java-класса
+                if [ ! -f "$JAVA_CLASS" ]; then
+                    echo "Файл $JAVA_CLASS не найден!"
+                    exit 1
+                fi
+
+                # Компиляция Java-класса
+                javac "$JAVA_CLASS"
+
+                if [ $? -ne 0 ]; then
+                    echo "Ошибка компиляции Native2ASCII.java"
+                    exit 1
+                fi
+
+                # Преобразование
+                java -cp .. Native2ASCII "$INPUT_FILE" "$OUTPUT_FILE"
+
+                if [ $? -eq 0 ]; then
+                    echo "Файл успешно преобразован: $OUTPUT_FILE"
+                else
+                    echo "Ошибка преобразования файла"
+                    exit 1
+                fi
+                ]]>
+            </argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
 
